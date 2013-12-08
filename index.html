@@ -44,7 +44,9 @@
     $('#beforeJoin').hide();$('#afterJoin').show(); 
     var msg='<span class="addUser">'+data['msg']+'</span>::'+data['user']+'</br>';
     $('#showchat').append(msg);
-    $('#myname').val(data['user']);
+    if($('#myname').val() == ''){
+        $('#myname').val(data['user']);        
+    }
     //socket.emit('my other event', { my: 'data' });
   });
   
@@ -83,7 +85,7 @@
          //var msg='<span class="myMsg">'+msg+'</span></br>';
          //$('#showchat').append(msg);
          socket.emit('post msg',{msg:msg,target:target,from:from});
-          $('#msg').val();
+          $('#msg').val('');
 
      });
   });
