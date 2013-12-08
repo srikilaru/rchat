@@ -2,50 +2,56 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
-
-var app = require('express').createServer()
-var io = require('socket.io').listen(app);
+var app = require('http').createServer(handler)
+  , io = require('socket.io').listen(app)
+  , fs = require('fs')
 
 app.listen(8080);
 
-// routing
-app.get('/', function (req, res) {
-  res.sendfile('index.html');
-});
+function handler (req, res) {
+  fs.readFile(__dirname + '/index.html',
+  function (err, data) {
+    if (err) {
+      res.writeHead(500);
+      return res.end('Error loading index.html');
+    }
 
-// usernames which are currently connected to the chat
-var usernames = {};
-
+    res.writeHead(200);
+    res.end(data);
+  });
+}
+var users={};
+var clients={};
 io.sockets.on('connection', function (socket) {
-
-	// when the client emits 'sendchat', this listens and executes
-	socket.on('sendchat', function (data) {
-		// we tell the client to execute 'updatechat' with 2 parameters
-		io.sockets.emit('updatechat', socket.username, data);
-	});
-
-	// when the client emits 'adduser', this listens and executes
-	socket.on('adduser', function(username){
-		// we store the username in the socket session for this client
-		socket.username = username;
-		// add the client's username to the global list
-		usernames[username] = username;
-		// echo to client they've connected
-		socket.emit('updatechat', 'SERVER', 'you have connected');
-		// echo globally (all clients) that a person has connected
-		socket.broadcast.emit('updatechat', 'SERVER', username + ' has connected');
-		// update the list of users in chat, client-side
-		io.sockets.emit('updateusers', usernames);
-	});
-
-	// when the user disconnects.. perform this
-	socket.on('disconnect', function(){
-		// remove the username from global usernames list
-		delete usernames[socket.username];
-		// update list of users in chat, client-side
-		io.sockets.emit('updateusers', usernames);
-		// echo globally that this client has left
-		socket.broadcast.emit('updatechat', 'SERVER', socket.username + ' has disconnected');
-	});
+  socket.emit('news', { hello: 'world' });
+  socket.on('my other event', function (data) {
+    console.log(data);
+  });
+  socket.on('join chat', function (data) {
+     if(users[data['name']] === undefined){
+         users[data['name']] = socket.id;
+         clients[socket.id]=data['name'];
+         io.sockets.emit('join chat res',{msg:'New User '+data['name']+' Joined',user:data['name']});
+         io.sockets.emit('users',JSON.stringify(Object.keys(users)));
+     }else{
+         socket.emit('duplicate user',{msg:'User Already Existed'});
+     }
+ });
+ socket.on('post msg', function (data) {
+      var target=data['target'],
+          from=data['from'];
+      if(target == 'All'){
+        io.sockets.emit('post msg res',{status:true,msg:data['msg'],target:target,from:from});          
+      }else{
+          io.sockets.sockets[users[target]].emit('post msg res',{status:true,msg:data['msg'],target:target,from:from});
+      }
+      
+      //socket.emit('post msg res',{status:true,msg:data['msg']});
+  });
+  
+  
+        
 });
+
+
+

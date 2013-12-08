@@ -1,53 +1,113 @@
 <script src="/socket.io/socket.io.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<style>
+    .addUser{
+        
+        background-color:#006400;
+        font-size: 13px;
+        font-weight: bold;
+        border: 1px;
+    }
+    .myMsg{
+        
+        background-color:#0000FF;
+        font-size: 13px;
+        font-weight: bold;
+    }
+    .rMsg{
+        
+        background-color:#8B8878;
+        font-size: 13px;
+        font-weight: bold;
+    }
+    #showchat{
+        background-color:#A9A9A9;
+    }
+    </style>
 <script>
-	var socket = io.connect('http://localhost:8080');
+  var socket = io.connect(document.location);
+  socket.on('news', function (data) {
+    socket.emit('my other event', { my: 'data' });
+  });
+  socket.on('fnsg', function (data) {
+    console.log(data);
+    //socket.emit('my other event', { my: 'data' });
+  });
+  
+  socket.on('duplicate user', function (data) {
+    console.log(data['msg']);
+    //socket.emit('my other event', { my: 'data' });
+  });
+  
+  socket.on('join chat res', function (data) {
+    console.log(data['msg']);
+    $('#beforeJoin').hide();$('#afterJoin').show(); 
+    var msg='<span class="addUser">'+data['msg']+'</span>::'+data['user']+'</br>';
+    $('#showchat').append(msg);
+    $('#myname').val(data['user']);
+    //socket.emit('my other event', { my: 'data' });
+  });
+  
+  socket.on('users', function (data) {
+   // console.log(data['msg']);
+    var users=JSON.parse(data);
+    var usersHtml="<option value='All'>All</option>";
+    for(var i=0;i<users.length;i++){
+        usersHtml+="<option value="+users[i]+">"+users[i]+"</option>";
+    }
+    $('#userList').html(usersHtml);
+    //socket.emit('my other event', { my: 'data' });
+  });
+  
+  socket.on('post msg res', function (data) {
+    console.log(data['msg']);
+    if(data['from'] == $('#myname').val()){
+        var msg='<span class="myMsg">'+data['msg']+'</span>::'+data['from']+'</br>';
+    }else{
+        var msg='<span class="rMsg">'+data['msg']+'</span>::'+data['from']+'</br>';
+    }
+    $('#showchat').append(msg);
+    
+  });
+  
+  $(document).ready(function(){
+     $('#joinChat').click(function(){
+         var name=$('#userName').val();
+         socket.emit('join chat',{name:name});
+     });
+     
+     $('#postMsg').click(function(){
+         var msg=$('#msg').val();
+         var target=$('#userList').val();
+         var from=$('#myname').val();
+         //var msg='<span class="myMsg">'+msg+'</span></br>';
+         //$('#showchat').append(msg);
+         socket.emit('post msg',{msg:msg,target:target,from:from});
+          $('#msg').val();
 
-	// on connection to server, ask for user's name with an anonymous callback
-	socket.on('connect', function(){
-		// call the server-side function 'adduser' and send one parameter (value of prompt)
-		socket.emit('adduser', prompt("What's your name?"));
-	});
-
-	// listener, whenever the server emits 'updatechat', this updates the chat body
-	socket.on('updatechat', function (username, data) {
-		$('#conversation').append('<b>'+username + ':</b> ' + data + '<br>');
-	});
-
-	// listener, whenever the server emits 'updateusers', this updates the username list
-	socket.on('updateusers', function(data) {
-		$('#users').empty();
-		$.each(data, function(key, value) {
-			$('#users').append('<div>' + key + '</div>');
-		});
-	});
-
-	// on load of page
-	$(function(){
-		// when the client clicks SEND
-		$('#datasend').click( function() {
-			var message = $('#data').val();
-			$('#data').val('');
-			// tell server to execute 'sendchat' and send along one parameter
-			socket.emit('sendchat', message);
-		});
-
-		// when the client hits ENTER on their keyboard
-		$('#data').keypress(function(e) {
-			if(e.which == 13) {
-				$(this).blur();
-				$('#datasend').focus().click();
-			}
-		});
-	});
-
+     });
+  });
+  
+  function sendMsg(){
+        }
 </script>
-<div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
-	<b>USERS</b>
-	<div id="users"></div>
-</div>
-<div style="float:left;width:300px;height:250px;overflow:scroll-y;padding:10px;">
-	<div id="conversation"></div>
-	<input id="data" style="width:200px;" />
-	<input type="button" id="datasend" value="send" />
-</div>
+
+<body>
+    
+    <h1> Welcome To Srikanth Chat Application</h1>
+    <div id='beforeJoin'>
+        <span>Enter Name:<input type="text" id="userName"><input type='button' id='joinChat' value='Join Chat'></span></br>
+    </div>
+    <div id='afterJoin' style="display:none;">
+        <br><div id="showchat" style="width:500px;height:300px;">
+        </div><br><br>
+        <select id="userList">
+            <option value='All'>All</option>
+        </select>
+        <span>Enter Msg:<input type="text" id="msg"><input type='button' id='postMsg' value='Post'></span>
+        <input type='hidden' id='myname' value=''>
+    </div>
+   <!-- <span id="text"> </span>
+    <input type="text" id='fujoin'><input type="button" value="submit" onclick="join();">
+    <input type="text" id='msg'><input type="button" value="post" onclick="sendMsg();"> -->
+    </body>
